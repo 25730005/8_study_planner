@@ -40,6 +40,16 @@ input[type=text],input[type=number],textarea,select{border:1px solid #dfe3e7;bor
 .backup{display:flex;gap:7px;flex-wrap:wrap}
 @media(min-width:650px){.modalback.show{align-items:center}.modal{border-radius:18px}}
 @media(max-width:560px){.stats{grid-template-columns:repeat(2,1fr)}.title{font-size:22px}.hours{grid-template-columns:1fr 1fr}.hours label:first-child{grid-column:1/-1}}
+
+.monthly-modal{position:fixed;inset:0;background:rgba(15,23,42,.42);display:none;align-items:flex-end;justify-content:center;z-index:9999;padding:16px}
+.monthly-modal.show{display:flex}
+.monthly-modal-box{width:min(520px,100%);background:#fff;border-radius:22px;padding:18px;box-shadow:0 18px 50px rgba(0,0,0,.18)}
+.monthly-modal-title{font-weight:900;font-size:17px;margin-bottom:12px}
+.monthly-input{width:100%;box-sizing:border-box;border:1px solid #d8dee8;border-radius:12px;padding:13px;font-size:15px;outline:none}
+.monthly-input:focus{border-color:#64748b}
+.monthly-modal-actions{display:flex;gap:8px;margin-top:12px}
+.monthly-modal-actions button{flex:1}
+
 </style>
 </head>
 <body>
@@ -158,6 +168,19 @@ input[type=text],input[type=number],textarea,select{border:1px solid #dfe3e7;bor
   </div>
 </section>
 
+
+<div id="monthlyGoalModal" class="monthly-modal" onclick="if(event.target===this)closeMonthlyGoalModal()">
+  <div class="monthly-modal-box">
+    <div class="monthly-modal-title">🎯 8월 전체 목표</div>
+    <input id="monthlyGoalInput" class="monthly-input" type="text" maxlength="120" placeholder="예: 선형대수 밀린 진도 끝내기">
+    <div class="monthly-modal-actions">
+      <button class="btn light" onclick="closeMonthlyGoalModal()">취소</button>
+      <button id="monthlyDeleteBtn" class="btn light" onclick="deleteMonthlyGoalFromModal()">삭제</button>
+      <button class="btn" onclick="saveMonthlyGoalFromModal()">저장</button>
+    </div>
+  </div>
+</div>
+
 <nav class="nav"><div class="navinner">
   <button class="active" data-page="today"><span class="navicon">🏠</span>오늘</button>
   <button data-page="plan"><span class="navicon">📅</span>계획</button>
@@ -217,28 +240,52 @@ function renderMonthly(){
     <label class="task ${g.done?"done":""}" style="margin:0">
       <input type="checkbox" ${g.done?"checked":""} onchange="toggleMonthlyGoal('${g.id}',this.checked)">
       <span class="tasktext">${esc(g.text)}</span>
-      <button class="taskedit" onclick="editMonthlyGoal('${g.id}')">✎</button>
+      <button class="taskedit" onclick="openMonthlyGoalModal('${g.id}')">✎</button>
     </label>
   </div>`).join("");
 }
 function toggleMonthlyGoal(id,v){let g=monthlyGoals.find(x=>x.id===id);if(g){g.done=v;saveMonthlyGoals();renderMonthly();}}
-function addMonthlyGoal(){
-  const x=prompt("8월 전체 목표를 입력하세요");
-  if(!x||!x.trim())return;
-  monthlyGoals.push({id:"mg"+Date.now(),text:x.trim(),done:false});
-  saveMonthlyGoals();renderMonthly();
+let monthlyEditId=null;
+function openMonthlyGoalModal(id=null){
+  monthlyEditId=id;
+  const g=id ? monthlyGoals.find(x=>x.id===id) : null;
+  document.getElementById("monthlyGoalInput").value=g?g.text:"";
+  document.getElementById("monthlyGoalModal").classList.add("show");
+  setTimeout(()=>document.getElementById("monthlyGoalInput").focus(),50);
 }
-function editMonthlyGoal(id){
-  const g=monthlyGoals.find(x=>x.id===id); if(!g)return;
-  const x=prompt("목표 수정",g.text);
-  if(x===null)return;
-  if(!x.trim()){
-    if(confirm("이 목표를 삭제할까요?")) monthlyGoals=monthlyGoals.filter(q=>q.id!==id);
-  } else g.text=x.trim();
-  saveMonthlyGoals();renderMonthly();
+function closeMonthlyGoalModal(){
+  document.getElementById("monthlyGoalModal").classList.remove("show");
+  monthlyEditId=null;
+}
+function addMonthlyGoal(){openMonthlyGoalModal();}
+function editMonthlyGoal(id){openMonthlyGoalModal(id);}
+function saveMonthlyGoalFromModal(){
+  const input=document.getElementById("monthlyGoalInput");
+  const x=input.value.trim();
+  if(!x){input.focus();return;}
+  if(monthlyEditId){
+    const g=monthlyGoals.find(q=>q.id===monthlyEditId);
+    if(g)g.text=x;
+  }else{
+    monthlyGoals.push({id:"mg"+Date.now(),text:x,done:false});
+  }
+  saveMonthlyGoals();renderMonthly();closeMonthlyGoalModal();
+}
+function deleteMonthlyGoalFromModal(){
+  if(!monthlyEditId)return;
+  monthlyGoals=monthlyGoals.filter(q=>q.id!==monthlyEditId);
+  saveMonthlyGoals();renderMonthly();closeMonthlyGoalModal();
 }
 
 let recordDate=new Date().toISOString().slice(0,10);
+
+document.addEventListener("keydown",function(e){
+  const modal=document.getElementById("monthlyGoalModal");
+  if(!modal || !modal.classList.contains("show"))return;
+  if(e.key==="Enter")saveMonthlyGoalFromModal();
+  if(e.key==="Escape")closeMonthlyGoalModal();
+});
+
 let currentPage="today";
 
 function save(){localStorage.setItem("studyPlannerV3",JSON.stringify(data))}
