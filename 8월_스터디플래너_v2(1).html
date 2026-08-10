@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#111827">
+<title>8월 Study Planner</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f4f5f7;color:#20252b;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+button,input,textarea,select{font:inherit}
+button{cursor:pointer}
+.app{max-width:820px;margin:auto;padding:16px 12px 60px}
+.top{display:flex;justify-content:space-between;align-items:end;margin-bottom:14px}
+h1{font-size:25px;margin:0;font-weight:850;letter-spacing:-.7px}.date{font-size:12px;color:#8a919a;margin-top:4px}
+.nav{display:flex;gap:6px}.nav button,.chip,.mini-btn{border:1px solid #e2e5e9;background:#fff;border-radius:10px;padding:8px 10px;font-weight:700;color:#4c5560}
+.card{background:#fff;border:1px solid #e8eaed;border-radius:17px;padding:15px;margin:10px 0;box-shadow:0 3px 14px #00000008}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.stat{background:#f8f9fa;border-radius:12px;padding:11px 8px;text-align:center}.num{font-size:19px;font-weight:850}.label{font-size:10px;color:#8a919a;margin-top:3px}
+.progress{height:8px;background:#e9ecf0;border-radius:99px;overflow:hidden;margin:11px 0 4px}.bar{height:100%;width:0;background:#20252b;transition:.2s}
+.tabs{display:flex;gap:7px;overflow:auto;margin:12px 0}.tab{white-space:nowrap;border:1px solid #e1e4e8;background:#fff;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:800}.tab.active{background:#20252b;color:#fff}
+.day{background:#fff;border:1px solid #e6e8eb;border-radius:16px;margin:10px 0;overflow:hidden}.dayhead{padding:13px 14px;background:#fafafa;display:flex;justify-content:space-between;align-items:center}.dayleft{display:flex;gap:9px;align-items:center}.dnum{font-weight:850}.badge{font-size:10px;padding:4px 7px;border-radius:99px;background:#eef0f3;color:#5f6873}.body{padding:0 14px 8px}
+.group{padding:11px 0;border-bottom:1px solid #f0f1f3}.group:last-child{border-bottom:0}.gtitle{display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:800}.gtitle small{font-size:10px;color:#9aa1a9;font-weight:600}
+.task{display:flex;align-items:flex-start;gap:9px;margin:9px 0 0;font-size:13px;line-height:1.4}.task input{width:18px;height:18px;accent-color:#20252b;margin-top:1px}.task.done{color:#9aa1a9;text-decoration:line-through}
+.progress-mini{height:5px;background:#eceff2;border-radius:99px;margin-top:7px;overflow:hidden}.progress-mini i{display:block;height:100%;background:#66707b;width:0}
+.add{margin-top:8px;border:1px dashed #cfd4da;background:#fff;border-radius:10px;padding:7px 9px;font-size:11px;color:#66707b;font-weight:750}
+input.text,textarea{width:100%;border:1px solid #e0e4e8;border-radius:10px;padding:9px;background:#fff;outline:none}textarea{min-height:90px;resize:vertical}
+.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}.btn{border:0;background:#20252b;color:#fff;border-radius:10px;padding:9px 12px;font-weight:800}.btn.secondary{background:#eef0f3;color:#37404a}.btn.danger{background:#fff0f0;color:#b42318}
+.hours{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.hours label{font-size:10px;color:#7d858f}.hours input{width:100%;margin-top:4px;border:1px solid #e1e4e8;border-radius:9px;padding:8px}
+.section-title{font-size:16px;font-weight:850;margin:20px 2px 7px}.hint{font-size:11px;color:#8a919a;line-height:1.5}
+.hidden{display:none}
+@media(max-width:560px){.stats{grid-template-columns:repeat(2,1fr)}.top{align-items:flex-start}.hours{grid-template-columns:1fr 1fr}.nav button{padding:7px 8px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div><h1>8월 STUDY PLANNER</h1><div class="date" id="todayLabel"></div></div>
+    <div class="nav"><button onclick="exportData()">백업</button><button onclick="importData()">복구</button></div>
+  </div>
+
+  <div class="card">
+    <div class="stats">
+      <div class="stat"><div class="num" id="done">0</div><div class="label">완료 항목</div></div>
+      <div class="stat"><div class="num" id="total">0</div><div class="label">전체 항목</div></div>
+      <div class="stat"><div class="num" id="hours">0h</div><div class="label">기록 공부시간</div></div>
+      <div class="stat"><div class="num" id="pct">0%</div><div class="label">전체 진행률</div></div>
+    </div>
+    <div class="progress"><div class="bar" id="bar"></div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-view="all">전체</button>
+    <button class="tab" data-view="today">오늘</button>
+    <button class="tab" data-view="math">🧮 수학</button>
+    <button class="tab" data-view="english">🇬🇧 영어</button>
+    <button class="tab" data-view="review">🔁 복습</button>
+  </div>
+
+  <div id="schedule"></div>
+
+  <div class="section-title">📝 오늘의 메모</div>
+  <div class="card">
+    <textarea id="globalNote" placeholder="오늘 공부하면서 느낀 점, 막힌 부분, 내일 할 일 등을 자유롭게 적어보세요."></textarea>
+    <div class="hours">
+      <label>총 공부시간<input id="hTotal" type="number" min="0" step=".5" placeholder="예: 8"></label>
+      <label>수학<input id="hMath" type="number" min="0" step=".5" placeholder="예: 5.5"></label>
+      <label>영어<input id="hEng" type="number" min="0" step=".5" placeholder="예: 2"></label>
+    </div>
+    <button class="btn" style="margin-top:9px" onclick="saveToday()">오늘 기록 저장</button>
+  </div>
+
+  <div class="section-title">➕ 오늘 할 일 추가</div>
+  <div class="card">
+    <div class="row"><input class="text" id="newTodo" placeholder="예: 영어 단어 1회독"><button class="btn" onclick="addTodo()">추가</button></div>
+    <div id="customTodos" style="margin-top:8px"></div>
+  </div>
+
+  <div class="section-title">📌 진도 관리</div>
+  <div class="card">
+    <div class="hint">반장님 진도표를 기준으로 만든 체크리스트입니다. 각 날짜 안의 항목은 직접 수정·추가할 수 있습니다. 현재 완료한 곳까지 자동으로 확인할 수 있어요.</div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn secondary" onclick="editMode()">진도 수정</button>
+      <button class="btn secondary" onclick="addProgressDay()">진도 날짜 추가</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const seed = [
+{date:"8/10",tag:"오늘",groups:[
+["🧮 수학",["05/31 선형대수 복습","06/07 선형대수 진도","이전 미적분 복습 1시간"]],
+["🇬🇧 영어",["영어 계획 세우기","영단어 눈 익히기"]]
+]},
+{date:"8/11",tag:"❤️ 약속",groups:[
+["🧮 수학",["오전 수학 집중","이전 미적분 복습 1시간"]],
+["🇬🇧 영어",["영단어 30분"]],
+["❤️ 일정",["15:00~22:00 남친 약속"]]
+]},
+{date:"8/12",tag:"🦷 치과 + 🏫 학원",groups:[
+["🧮 수학",["밀린 선형대수/수학 진도","이전 미적분 복습 1시간"]],
+["🇬🇧 영어",["영어 공부"]],
+["📌 일정",["09:00~11:00 치과","18:00~22:00 학원"]]
+]},
+{date:"8/13",tag:"🏫 학원",groups:[
+["🧮 수학",["밀린 수학 진도","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 공부"]],["📌 일정",["18:00~22:00 학원"]]
+]},
+{date:"8/14",tag:"🏫 학원",groups:[
+["🧮 수학",["밀린 수학 진도","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 공부"]],["📌 일정",["18:00~22:00 학원"]]
+]},
+{date:"8/15",tag:"👨‍👩‍👧 가족 약속",groups:[
+["🔁 복습",["지금까지 한 수학 진도 가볍게 복습","영단어 눈 익히기"]],["📌 일정",["가족 약속"]]
+]},
+{date:"8/16",tag:"⭐ 정상 12h",groups:[
+["🧮 수학",["밀린 수학 진도","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 3~4시간"]]
+]},
+{date:"8/17",tag:"⭐ 정상 12h",groups:[
+["🧮 수학",["밀린 수학 진도","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 3~4시간"]]
+]},
+{date:"8/18",tag:"⭐ 정상 12h",groups:[
+["🧮 수학",["밀린 수학 진도","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 3~4시간"]]
+]},
+{date:"8/19",tag:"❤️ 약속",groups:[
+["🧮 수학",["오전~오후 초반 수학","이전 미적분 복습 1시간"]],["📌 일정",["16:00부터 친구 약속","학원 불참"]]
+]},
+{date:"8/20",tag:"🏫 학원",groups:[
+["🧮 수학",["낮 수학 진도","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 공부"]],["📌 일정",["18:00~22:00 학원"]]
+]},
+{date:"8/21",tag:"🏫 학원",groups:[
+["🧮 수학",["낮 수학 진도","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 공부"]],["📌 일정",["18:00~22:00 학원"]]
+]},
+{date:"8/22",tag:"⭐ 정상 12h",groups:[
+["🧮 수학",["밀린 수학 진도","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 3~4시간"]]
+]},
+{date:"8/23",tag:"⭐ 정상 12h",groups:[
+["🧮 수학",["밀린 수학 진도","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 3~4시간"]]
+]},
+{date:"8/24",tag:"❌ OFF",groups:[["📌 일정",["통째로 어려움 — 공부 계획에서 제외"]]]},
+{date:"8/25",tag:"⭐ 정상 12h",groups:[
+["🧮 수학",["밀린 수학 진도","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 3~4시간"]]
+]},
+{date:"8/26",tag:"📚 자격증 특강",groups:[
+["🧮 수학",["쉬는 시간 수학 복습/문제 몇 개"]],["🇬🇧 영어",["영단어"]],["📌 일정",["자격증 특강"]]
+]},
+{date:"8/27",tag:"📚 자격증 특강",groups:[
+["🧮 수학",["쉬는 시간 수학 복습"]],["🇬🇧 영어",["영단어"]],["📌 일정",["자격증 특강"]]
+]},
+{date:"8/28",tag:"📚 자격증 특강",groups:[
+["🧮 수학",["쉬는 시간 수학 복습"]],["🇬🇧 영어",["영단어"]],["📌 일정",["자격증 특강"]]
+]},
+{date:"8/29",tag:"⭐ 정상 12h · 수업 없음",groups:[
+["🧮 수학",["밀린 수학 진도 집중","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 3~4시간"]]
+]},
+{date:"8/30",tag:"⭐ 정상 12h · 수업 없음",groups:[
+["🧮 수학",["밀린 수학 진도 집중","이전 미적분 복습 1시간","8월 현진도 진행"]],["🇬🇧 영어",["영어 3~4시간"]]
+]},
+{date:"8/31",tag:"🟨 BUFFER",groups:[
+["🧮 수학",["남은 밀린 진도","8월 현진도 4일치 중 남은 부분","이전 미적분 복습"]],["🇬🇧 영어",["영어"]],["📌 일정",["8월 전체 보정"]]
+]}
+];
+
+let data=JSON.parse(localStorage.getItem("studyPlannerV2")||"null")||seed.map((d,i)=>({...d,id:"d"+i,groups:d.groups.map((g,gi)=>({id:`g${i}-${gi}`,title:g[0],tasks:g[1].map((t,ti)=>({id:`t${i}-${gi}-${ti}`,text:t,done:false}))}))}));
+let view="all", edit=false;
+
+function save(){localStorage.setItem("studyPlannerV2",JSON.stringify(data))}
+function allTasks(){return data.flatMap(d=>d.groups.flatMap(g=>g.tasks))}
+function updateStats(){
+ let a=allTasks(),done=a.filter(t=>t.done).length;
+ document.getElementById("done").textContent=done;document.getElementById("total").textContent=a.length;
+ let p=a.length?Math.round(done/a.length*100):0;document.getElementById("pct").textContent=p+"%";document.getElementById("bar").style.width=p+"%";
+ let hrs=Object.values(localStorage).filter((_,i)=>false); let total=0;
+ data.forEach(d=>{let h=JSON.parse(localStorage.getItem("hours-"+d.date)||"{}");total+=Number(h.total||0)});
+ document.getElementById("hours").textContent=(Math.round(total*10)/10)+"h";
+}
+function render(){
+ const root=document.getElementById("schedule");root.innerHTML="";
+ data.forEach((d,di)=>{
+  let visible=view==="all"||view==="today"?(view==="all"||di===0):true;
+  if(view==="math") visible=d.groups.some(g=>g.title.includes("수학"));
+  if(view==="english") visible=d.groups.some(g=>g.title.includes("영어"));
+  if(view==="review") visible=d.groups.some(g=>g.title.includes("복습"));
+  if(!visible)return;
+  let el=document.createElement("div");el.className="day";
+  let head=`<div class="dayhead"><div class="dayleft"><span class="dnum">${d.date}</span><span class="badge">${d.tag}</span></div>${edit?`<button class="mini-btn" onclick="editDay('${d.id}')">수정</button>`:""}</div><div class="body">`;
+  d.groups.forEach(g=>{
+   let done=g.tasks.filter(t=>t.done).length, pct=g.tasks.length?Math.round(done/g.tasks.length*100):0;
+   head+=`<div class="group"><div class="gtitle"><span>${g.title}</span><small>${done}/${g.tasks.length}</small></div><div class="progress-mini"><i style="width:${pct}%"></i></div>`;
+   g.tasks.forEach(t=>{
+    head+=`<label class="task ${t.done?'done':''}"><input type="checkbox" ${t.done?'checked':''} onchange="toggle('${d.id}','${g.id}','${t.id}',this.checked)"><span>${t.text}</span></label>`;
+   });
+   if(edit) head+=`<button class="add" onclick="addTask('${d.id}','${g.id}')">＋ 항목 추가</button>`;
+   head+=`</div>`;
+  });
+  head+=`</div>`;el.innerHTML=head;root.appendChild(el);
+ });
+ updateStats();
+}
+function toggle(di,gi,ti,v){let d=data.find(x=>x.id===di),g=d.groups.find(x=>x.id===gi),t=g.tasks.find(x=>x.id===ti);t.done=v;save();render()}
+function editMode(){edit=!edit;render()}
+function editDay(id){
+ let d=data.find(x=>x.id===id),n=prompt("날짜 표시 이름 수정",d.date);if(n!==null&&n.trim()){d.date=n.trim();save();render()}
+}
+function addTask(di,gi){
+ let text=prompt("추가할 공부 항목을 입력하세요");if(!text)return;
+ data.find(d=>d.id===di).groups.find(g=>g.id===gi).tasks.push({id:"t"+Date.now(),text,done:false});save();render()
+}
+function addProgressDay(){
+ let date=prompt("추가할 날짜/진도 이름 (예: 8/30 현진도 1)");if(!date)return;
+ let text=prompt("첫 번째 할 일 (예: 선형대수 50강)");if(!text)return;
+ data.push({id:"d"+Date.now(),date,tag:"추가 진도",groups:[{id:"g"+Date.now(),title:"🧮 수학",tasks:[{id:"t"+Date.now(),text,done:false}]}]});
+ save();render()
+}
+function addTodo(){
+ let x=document.getElementById("newTodo"),text=x.value.trim();if(!text)return;
+ let key="custom-"+Date.now();let arr=JSON.parse(localStorage.getItem("customTodos")||"[]");arr.push({key,text,done:false});localStorage.setItem("customTodos",JSON.stringify(arr));x.value="";renderTodos()
+}
+function renderTodos(){
+ let arr=JSON.parse(localStorage.getItem("customTodos")||"[]"),root=document.getElementById("customTodos");root.innerHTML="";
+ arr.forEach((t,i)=>{root.innerHTML+=`<label class="task ${t.done?'done':''}"><input type="checkbox" ${t.done?'checked':''} onchange="todoCheck(${i},this.checked)"><span>${t.text}</span><button class="mini-btn" onclick="delTodo(${i})">삭제</button></label>`})
+}
+function todoCheck(i,v){let a=JSON.parse(localStorage.getItem("customTodos")||"[]");a[i].done=v;localStorage.setItem("customTodos",JSON.stringify(a));renderTodos()}
+function delTodo(i){let a=JSON.parse(localStorage.getItem("customTodos")||"[]");a.splice(i,1);localStorage.setItem("customTodos",JSON.stringify(a));renderTodos()}
+function saveToday(){
+ let h={total:document.getElementById("hTotal").value,math:document.getElementById("hMath").value,eng:document.getElementById("hEng").value,note:document.getElementById("globalNote").value};
+ localStorage.setItem("hours-"+data[0].date,JSON.stringify(h));alert("오늘 기록을 저장했어!");updateStats()
+}
+function loadToday(){
+ let h=JSON.parse(localStorage.getItem("hours-"+data[0].date)||"{}");document.getElementById("hTotal").value=h.total||"";document.getElementById("hMath").value=h.math||"";document.getElementById("hEng").value=h.eng||"";document.getElementById("globalNote").value=h.note||"";
+}
+function exportData(){
+ let payload={data,customTodos:localStorage.getItem("customTodos")||"[]",hours:Object.fromEntries(data.map(d=>["hours-"+d.date,localStorage.getItem("hours-"+d.date)]))};
+ let blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="8월_공부플래너_백업.json";a.click()
+}
+function importData(){
+ let input=document.createElement("input");input.type="file";input.accept=".json";input.onchange=()=>{let f=input.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let p=JSON.parse(r.result);data=p.data;localStorage.setItem("studyPlannerV2",JSON.stringify(data));localStorage.setItem("customTodos",p.customTodos||"[]");Object.entries(p.hours||{}).forEach(([k,v])=>localStorage.setItem(k,v));render();renderTodos();loadToday();alert("복구 완료!")}catch(e){alert("백업 파일을 읽지 못했어.")}};r.readAsText(f)};input.click()
+}
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");view=b.dataset.view;render()});
+document.getElementById("todayLabel").textContent="8월 10일 · 수학 7 : 영어 3";
+render();renderTodos();loadToday();
+</script>
+</body>
+</html>
