@@ -25,6 +25,8 @@ header{position:sticky;top:0;z-index:10;background:rgba(244,245,247,.94);backdro
 .task{display:flex;gap:9px;align-items:flex-start;margin:9px 0 0;font-size:13px;line-height:1.42}
 .taskblock{margin:9px 0 0}.taskblock .task{margin:0}.taskblock.done .tasktext{text-decoration:line-through;color:#a1a8b0}
 .phasecount{font-size:9px;color:#8b949e;white-space:nowrap;background:#f0f2f4;padding:3px 5px;border-radius:7px}.phases{display:flex;gap:8px;flex-wrap:wrap;padding:5px 0 2px 28px}.phases label{font-size:10px;color:#707984}.phases input{width:14px;height:14px;vertical-align:-2px;accent-color:#20252b}
+.phases{display:flex;flex-direction:column;gap:3px;padding:5px 0 2px 28px}.phaseitem{display:flex;align-items:center;gap:4px;min-height:22px}.phaseitem label{display:flex;align-items:center;font-size:10px;color:#707984;flex:1}.phaseitem input{width:14px;height:14px;vertical-align:-2px;accent-color:#20252b}.phaseedit,.phasedel{border:0;background:transparent;color:#9aa1aa;font-size:10px;padding:2px 4px;cursor:pointer}.phaseadd{border:0;background:transparent;color:#7b838c;font-size:10px;padding:3px 0;text-align:left}
+
 .targetline{display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-top:9px}.targetline strong{font-size:13px}
 .task input{width:18px;height:18px;margin-top:1px;accent-color:var(--ink)}.task.done span{text-decoration:line-through;color:#a1a8b0}.tasktext{flex:1}
 .taskedit{border:0;background:transparent;color:#9aa1a9;font-size:11px;padding:0 2px}
@@ -292,10 +294,26 @@ function setRecord(date,obj){localStorage.setItem("record-"+date,JSON.stringify(
 function tasksOf(d){return d?d.groups.flatMap(g=>g.tasks):[]}
 function phaseState(t){
   if(!t.phases)t.phases={lecture:false,practice:false,review:false};
+  if(!t.phaseLabels)t.phaseLabels={lecture:"강의",practice:"문제풀이·정리",review:"복습 완료"};
   return t.phases;
 }
-function taskDone(t){return t.done || (t.phases && t.phases.lecture && t.phases.practice && t.phases.review)}
-function taskPhaseCount(t){let p=phaseState(t);return [p.lecture,p.practice,p.review].filter(Boolean).length}
+function phaseLabels(t){
+  phaseState(t);
+  return t.phaseLabels;
+}
+function taskDone(t){
+  if(t.done)return true;
+  let p=phaseState(t), labels=phaseLabels(t), required=[];
+  ["lecture","practice","review"].forEach(k=>{if(!(t.deletedPhases&&t.deletedPhases[k]))required.push(!!p[k])});
+  (t.customPhases||[]).forEach(ph=>required.push(!!ph.done));
+  return required.length>0 && required.every(Boolean);
+}
+function taskPhaseCount(t){
+  let p=phaseState(t),count=0,total=0;
+  ["lecture","practice","review"].forEach(k=>{if(!(t.deletedPhases&&t.deletedPhases[k])){total++;if(p[k])count++;}});
+  (t.customPhases||[]).forEach(ph=>{total++;if(ph.done)count++;});
+  return count+"/"+total;
+}
 function todayISO(){let d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
 function fmt(date){let d=new Date(date+"T00:00:00");return `${d.getMonth()+1}월 ${d.getDate()}일 (${["일","월","화","수","목","금","토"][d.getDay()]})`}
 function pct(done,total){return total?Math.round(done/total*100):0}
@@ -338,9 +356,17 @@ function renderDay(d,editTasks=false){
       <button class="taskedit" onclick="editTask('${d.date}','${g.id}','${t.id}')">✎</button>
     </div>
     <div class="phases">
-      <label><input type="checkbox" ${p.lecture?"checked":""} onchange="togglePhase('${d.date}','${g.id}','${t.id}','lecture',this.checked)"> 강의</label>
-      <label><input type="checkbox" ${p.practice?"checked":""} onchange="togglePhase('${d.date}','${g.id}','${t.id}','practice',this.checked)"> 문제풀이·정리</label>
-      <label><input type="checkbox" ${p.review?"checked":""} onchange="togglePhase('${d.date}','${g.id}','${t.id}','review',this.checked)"> 복습 완료</label>
+      ${["lecture","practice","review"].map(k=>`<div class="phaseitem">
+        <label><input type="checkbox" ${p[k]?"checked":""} onchange="togglePhase('${d.date}','${g.id}','${t.id}','${k}',this.checked)"> <span>${esc(phaseLabels(t)[k])}</span></label>
+        <button class="phaseedit" onclick="editPhase('${d.date}','${g.id}','${t.id}','${k}')">✎</button>
+        <button class="phasedel" onclick="deletePhase('${d.date}','${g.id}','${t.id}','${k}')">×</button>
+      </div>`).join("")}
+      ${(t.customPhases||[]).map((ph,i)=>`<div class="phaseitem">
+        <label><input type="checkbox" ${ph.done?"checked":""} onchange="toggleCustomPhase('${d.date}','${g.id}','${t.id}',${i},this.checked)"> <span>${esc(ph.text)}</span></label>
+        <button class="phaseedit" onclick="editCustomPhase('${d.date}','${g.id}','${t.id}',${i})">✎</button>
+        <button class="phasedel" onclick="deleteCustomPhase('${d.date}','${g.id}','${t.id}',${i})">×</button>
+      </div>`).join("")}
+      <button class="phaseadd" onclick="addCustomPhase('${d.date}','${g.id}','${t.id}')">＋ 세부 항목 추가</button>
     </div>
   </div>`;
 });
@@ -383,10 +409,53 @@ function saveRecordPage(){let d=recordDate;setRecord(d,{total:document.getElemen
 function toggle(date,gi,ti,v){
  let d=getDay(date),g=d.groups.find(x=>x.id===gi),t=g.tasks.find(x=>x.id===ti);
  t.done=v;
- if(v){t.phases={lecture:true,practice:true,review:true};}
- else {t.phases={lecture:false,practice:false,review:false};}
+ if(v){
+   t.phases={lecture:true,practice:true,review:true};
+   (t.customPhases||[]).forEach(ph=>ph.done=true);
+ } else {
+   t.phases={lecture:false,practice:false,review:false};
+   (t.customPhases||[]).forEach(ph=>ph.done=false);
+ }
  save();renderAll();
 }
+
+function editPhase(date,gi,ti,phase){
+  let d=getDay(date),g=d.groups.find(x=>x.id===gi),t=g.tasks.find(x=>x.id===ti);
+  let labels=phaseLabels(t),x=prompt("세부 항목 이름 수정",labels[phase]);
+  if(x===null||!x.trim())return;
+  labels[phase]=x.trim();save();renderAll();
+}
+function deletePhase(date,gi,ti,phase){
+  if(!confirm("이 기본 세부 항목을 삭제할까요?"))return;
+  let d=getDay(date),g=d.groups.find(x=>x.id===gi),t=g.tasks.find(x=>x.id===ti);
+  t.deletedPhases=t.deletedPhases||{};t.deletedPhases[phase]=true;save();renderAll();
+}
+function addCustomPhase(date,gi,ti){
+  let x=prompt("추가할 세부 항목 이름");
+  if(!x||!x.trim())return;
+  let d=getDay(date),g=d.groups.find(x=>x.id===gi),t=g.tasks.find(x=>x.id===ti);
+  t.customPhases=t.customPhases||[];t.customPhases.push({text:x.trim(),done:false});
+  save();renderAll();
+}
+function editCustomPhase(date,gi,ti,i){
+  let d=getDay(date),g=d.groups.find(x=>x.id===gi),t=g.tasks.find(x=>x.id===ti),ph=(t.customPhases||[])[i];
+  if(!ph)return;
+  let x=prompt("세부 항목 수정",ph.text);
+  if(x===null)return;
+  if(!x.trim())return;
+  ph.text=x.trim();save();renderAll();
+}
+function deleteCustomPhase(date,gi,ti,i){
+  if(!confirm("이 세부 항목을 삭제할까요?"))return;
+  let d=getDay(date),g=d.groups.find(x=>x.id===gi),t=g.tasks.find(x=>x.id===ti);
+  t.customPhases.splice(i,1);save();renderAll();
+}
+function toggleCustomPhase(date,gi,ti,i,v){
+  let d=getDay(date),g=d.groups.find(x=>x.id===gi),t=g.tasks.find(x=>x.id===ti);
+  if(t.customPhases&&t.customPhases[i])t.customPhases[i].done=v;
+  save();renderAll();
+}
+
 function togglePhase(date,gi,ti,phase,v){
  let d=getDay(date),g=d.groups.find(x=>x.id===gi),t=g.tasks.find(x=>x.id===ti),p=phaseState(t);
  p[phase]=v;t.done=!!(p.lecture&&p.practice&&p.review);
@@ -486,7 +555,7 @@ function importData(){
 }
 function resetAll(){if(!confirm("플래너의 체크/기록을 모두 초기화할까요?"))return;localStorage.clear();location.reload()}
 
-document.getElementById("headerSub").textContent="8/13 ver ";
+document.getElementById("headerSub").textContent="8/13 ver";
 renderAll();
 </script>
 </body>
