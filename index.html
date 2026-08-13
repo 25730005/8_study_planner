@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#111827">
-<title>8월 Study Planner v3</title>
+<title>8월 Study Planner v7</title>
 <style>
 *{box-sizing:border-box}
 :root{--ink:#20252b;--muted:#858d97;--line:#e7e9ed;--bg:#f4f5f7;--card:#fff;--soft:#f8f9fa}
@@ -22,7 +22,11 @@ header{position:sticky;top:0;z-index:10;background:rgba(244,245,247,.94);backdro
 .section-title{font-size:16px;font-weight:900;margin:20px 2px 7px}.hint{font-size:11px;color:var(--muted);line-height:1.55}
 .day{background:#fff;border:1px solid var(--line);border-radius:16px;margin:10px 0;overflow:hidden}.dayhead{padding:13px 14px;background:#fafafa;display:flex;justify-content:space-between;gap:10px;align-items:center}.dayleft{min-width:0}.dnum{font-weight:900}.tag{display:inline-block;margin-left:6px;font-size:10px;padding:4px 7px;border-radius:99px;background:#eef0f3;color:#5f6873;vertical-align:middle;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dayactions{display:flex;gap:5px}.mini{border:1px solid #dfe3e7;background:#fff;border-radius:9px;padding:6px 8px;font-size:10px;font-weight:800}
 .body{padding:0 14px 8px}.group{padding:11px 0;border-bottom:1px solid #f0f1f3}.group:last-child{border-bottom:0}.gtitle{display:flex;justify-content:space-between;font-size:13px;font-weight:900}.gcount{font-size:10px;color:var(--muted)}
-.task{display:flex;gap:9px;align-items:flex-start;margin:9px 0 0;font-size:13px;line-height:1.42}.task input{width:18px;height:18px;margin-top:1px;accent-color:var(--ink)}.task.done span{text-decoration:line-through;color:#a1a8b0}.tasktext{flex:1}
+.task{display:flex;gap:9px;align-items:flex-start;margin:9px 0 0;font-size:13px;line-height:1.42}
+.taskblock{margin:9px 0 0}.taskblock .task{margin:0}.taskblock.done .tasktext{text-decoration:line-through;color:#a1a8b0}
+.phasecount{font-size:9px;color:#8b949e;white-space:nowrap;background:#f0f2f4;padding:3px 5px;border-radius:7px}.phases{display:flex;gap:8px;flex-wrap:wrap;padding:5px 0 2px 28px}.phases label{font-size:10px;color:#707984}.phases input{width:14px;height:14px;vertical-align:-2px;accent-color:#20252b}
+.targetline{display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-top:9px}.targetline strong{font-size:13px}
+.task input{width:18px;height:18px;margin-top:1px;accent-color:var(--ink)}.task.done span{text-decoration:line-through;color:#a1a8b0}.tasktext{flex:1}
 .taskedit{border:0;background:transparent;color:#9aa1a9;font-size:11px;padding:0 2px}
 .addline{border:1px dashed #ccd2d8;background:#fff;border-radius:10px;padding:7px 9px;font-size:11px;color:#66707b;font-weight:800;margin-top:8px}
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:7px 10px calc(7px + env(safe-area-inset-bottom));background:rgba(255,255,255,.96);backdrop-filter:blur(14px);border-top:1px solid var(--line);display:flex;justify-content:center}
@@ -75,7 +79,11 @@ input[type=text],input[type=number],textarea,select{border:1px solid #dfe3e7;bor
       <div class="stat"><div class="num" id="todayPct">0%</div><div class="label">오늘 진행률</div></div>
     </div>
     <div class="progress"><div class="bar" id="todayBar"></div></div>
+    <div class="targetline"><span>오늘 공부시간 목표</span><strong id="todayTargetText">12h</strong></div>
+    <div class="targetline"><span>실제 공부시간</span><strong id="todayActualText">0h · 0%</strong></div>
   </div>
+  <div class="section-title">🎯 오늘의 우선순위</div>
+  <div class="card hint"><b>🔴 반드시</b> · 오늘의 메인 진도 1개<br><b>🟡 가능하면</b> · 다음 진도 일부 / 문제풀이<br><b>🟢 여유 있으면</b> · 영어 추가 / 복습 보강</div>
   <div id="todayTasks"></div>
   <div class="section-title">⏱ 오늘 공부시간</div>
   <div class="card">
@@ -107,7 +115,13 @@ input[type=text],input[type=number],textarea,select{border:1px solid #dfe3e7;bor
   <div class="card">
     <div class="hint">이번 달에 반드시 끝내야 하는 큰 목표를 적어두는 공간이야. 날짜별 진도와 분리해서, 한눈에 8월 전체 방향을 확인할 수 있어.</div>
   </div>
+  
   <div id="monthlyGoals"></div>
+  <div class="section-title">📚 밀린 진도 전체 순서</div>
+  <div class="card">
+    <div class="hint">반장님 진도 날짜를 순서대로 체크해. 하루 계획과 별개로 '내가 어디까지 따라왔는지' 확인하는 용도야.</div>
+    <div id="masterCatchup"></div>
+  </div>
   <button class="btn light" style="width:100%;margin-top:4px" onclick="addMonthlyGoal()">＋ 8월 목표 추가</button>
 </section>
 
@@ -160,7 +174,7 @@ input[type=text],input[type=number],textarea,select{border:1px solid #dfe3e7;bor
   </div>
   <div class="card">
     <div style="font-weight:900">🎯 8월 전체 목표</div>
-    <div class="hint" style="margin-top:7px">하루 계획과 별개로, 8월 한 달 동안 끝내야 할 큰 목표를 관리해. 목표는 8월 탭에서 자유롭게 추가·수정·삭제할 수 있어.</div>
+    <div class="hint" style="margin-top:7px">하루 계획과 별개로, 8월 한 달 동안 끝내야 할 큰 목표를 관리해. 목표는 8월 탭에서 자유롭게 추가·수정·삭제할 수 있어.</div><div class="hint" style="margin-top:6px">진도 항목은 강의 → 문제풀이·정리 → 복습 완료의 3단계로 체크할 수 있어.</div>
   </div>
   <div class="card">
     <div style="font-weight:900">플래너 사용 방식</div>
@@ -192,43 +206,26 @@ input[type=text],input[type=number],textarea,select{border:1px solid #dfe3e7;bor
 <div class="modalback" id="modalBack" onclick="closeModal(event)"><div class="modal" id="modal"></div></div>
 
 <script>
-const seed=[
-["2026-08-10","오늘",[["🧮 수학",["05/31 선형대수 복습","06/07 선형대수 진도","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 계획 세우기","영단어 눈 익히기"]]]],
-["2026-08-11","❤️ 남친 약속",[["🧮 수학",["오전 수학 집중","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영단어 30분"]],["❤️ 일정",["15:00~22:00 남친 약속"]]]],
-["2026-08-12","🦷 치과 + 🏫 학원",[["🧮 수학",["밀린 수학 진도","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 공부"]],["📌 일정",["09:00~11:00 치과","18:00~22:00 학원"]]]],
-["2026-08-13","🏫 학원",[["🧮 수학",["밀린 수학 진도","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 공부"]],["📌 일정",["18:00~22:00 학원"]]]],
-["2026-08-14","🏫 학원",[["🧮 수학",["밀린 수학 진도","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 공부"]],["📌 일정",["18:00~22:00 학원"]]]],
-["2026-08-15","👨‍👩‍👧 가족 약속",[["🔁 복습",["지금까지 한 수학 진도 가볍게 복습","영단어 눈 익히기"]],["📌 일정",["가족 약속"]]]],
-["2026-08-16","⭐ 정상 12h",[["🧮 수학",["밀린 수학 진도","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 3~4시간"]]]],
-["2026-08-17","⭐ 정상 12h",[["🧮 수학",["밀린 수학 진도","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 3~4시간"]]]],
-["2026-08-18","⭐ 정상 12h",[["🧮 수학",["밀린 수학 진도","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 3~4시간"]]]],
-["2026-08-19","❤️ 친구 약속",[["🧮 수학",["오전~오후 초반 수학","이전 미적분 복습 1시간"]],["📌 일정",["16:00부터 친구 약속","학원 불참"]]]],
-["2026-08-20","🏫 학원",[["🧮 수학",["낮 수학 진도","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 공부"]],["📌 일정",["18:00~22:00 학원"]]]],
-["2026-08-21","🏫 학원",[["🧮 수학",["낮 수학 진도","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 공부"]],["📌 일정",["18:00~22:00 학원"]]]],
-["2026-08-22","⭐ 정상 12h",[["🧮 수학",["밀린 수학 진도","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 3~4시간"]]]],
-["2026-08-23","⭐ 정상 12h",[["🧮 수학",["밀린 수학 진도","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 3~4시간"]]]],
-["2026-08-24","❌ OFF",[["📌 일정",["통째로 어려움 — 공부 계획에서 제외"]]]],
-["2026-08-25","⭐ 정상 12h",[["🧮 수학",["밀린 수학 진도","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 3~4시간"]]]],
-["2026-08-26","📚 자격증 특강",[["🧮 수학",["쉬는 시간 수학 복습/문제 몇 개"]],["🇬🇧 영어",["영단어"]],["📌 일정",["자격증 특강"]]]],
-["2026-08-27","📚 자격증 특강",[["🧮 수학",["쉬는 시간 수학 복습"]],["🇬🇧 영어",["영단어"]],["📌 일정",["자격증 특강"]]]],
-["2026-08-28","📚 자격증 특강",[["🧮 수학",["쉬는 시간 수학 복습"]],["🇬🇧 영어",["영단어"]],["📌 일정",["자격증 특강"]]]],
-["2026-08-29","⭐ 정상 12h · 수업 없음",[["🧮 수학",["밀린 수학 진도 집중","이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 3~4시간"]]]],
-["2026-08-30","⭐ 정상 12h · 수업 없음",[["🧮 수학",["밀린 수학 진도 집중","이전 미적분 복습 1시간","8월 현진도 진행"]],["🇬🇧 영어",["영어 3~4시간"]]]],
-["2026-08-31","🟨 BUFFER",[["🧮 수학",["남은 밀린 진도","8월 현진도 4일치 중 남은 부분","이전 미적분 복습"]],["🇬🇧 영어",["영어"]],["📌 일정",["8월 전체 보정"]]]]
-];
+const seed=[["2026-08-10","⏭ 지난 날 · 만회하지 않음",[["📌 상태",["8/10~8/12는 지난 날로 처리","오늘부터 다시 시작"]]]],["2026-08-11","⏭ 지난 날 · 만회하지 않음",[["📌 상태",["지난 날로 처리","오늘부터 다시 시작"]]]],["2026-08-12","⏭ 지난 날 · 만회하지 않음",[["📌 상태",["지난 날로 처리","오늘부터 다시 시작"]]]],["2026-08-13","🏫 학원 · 리셋 DAY",[["🧮 수학",["05/31 복습 — p.1 행렬의 개념과 계산 ~ p.6 여러 가지 행렬","05/31 복습 — p.9 행렬식과 역행렬","06/07 — p.10 행렬식과 역행렬 개념 ~ p.18 예제23번","각 진도: 강의 듣기 + 문제풀이/정리"]],["🔁 이전 미적분 복습",["5/31 이전 미적분 진도 1시간"]],["🇬🇧 영어",["영어 계획 정리","영단어 눈 익히기"]],["📌 일정",["18:00~22:00 학원","오늘은 재시동 날 — 2~4h만 해도 성공"]]]],["2026-08-14","🏫 학원 · 8~10h",[["🧮 수학",["06/13 — p.12 행렬식과 역행렬 개념(수반행렬) ~ p.25 행렬식과 연립방정식 예제35번","06/20 — p.22 행렬과 연립방정식 ~ p.28 벡터의 개념과 연산 (1차 수강)","각 진도: 강의 듣기 + 문제풀이/정리"]],["🔁 이전 미적분 복습",["5/31 이전 미적분 진도 1시간"]],["🇬🇧 영어",["영어 2~3시간"]],["📌 일정",["18:00~22:00 학원"]]]],["2026-08-15","👨‍👩‍👧 가족 약속 · 가벼운 날",[["🧮 수학",["06/20 — 남은 부분 마무리 + 문제풀이/정리"]],["🔁 복습",["지금까지 한 선형대수 가볍게 복습","가능하면 이전 미적분 복습 1시간"]],["🇬🇧 영어",["영단어 눈 익히기"]],["📌 일정",["가족 약속","2~4h 정도면 충분"]]]],["2026-08-16","⭐ 정상 12h",[["🧮 수학",["06/21 — p.28 벡터의 개념과 연산 ~ p.35 벡터의 내적과 외적 예제20번","06/28 — p.34 벡터의 내적과 외적(외적의 성질) ~ 직선과 평면의 방정식 p.41 예제33번","각 진도: 강의 듣기 + 문제풀이/정리"]],["🔁 이전 미적분 복습",["5/31 이전 미적분 진도 1시간"]],["🇬🇧 영어",["영어 3~4시간"]]]],["2026-08-17","⭐ 정상 12h",[["🧮 수학",["06/29 — p.38 직선과 평면의 방정식 ~ p.46 예제50번","07/04 — 직선과 평면의 방정식 예제48번, 51번 + p.47 벡터공간 ~ p.52 기저와 차원(기저의 개념)","각 진도: 강의 듣기 + 문제풀이/정리"]],["🔁 이전 미적분 복습",["5/31 이전 미적분 진도 1시간"]],["🇬🇧 영어",["영어 3~4시간"]]]],["2026-08-18","⭐ 정상 12h",[["🧮 수학",["07/05 — p.52 기저와 차원(기저의 종류) ~ p.60 행공간·열공간 예제17번","07/11 — p.57 해공간 개념 ~ p.63 유형12 예제29","각 진도: 강의 듣기 + 문제풀이/정리"]],["🔁 이전 미적분 복습",["5/31 이전 미적분 진도 1시간"]],["🇬🇧 영어",["영어 3~4시간"]]]],["2026-08-19","❤️ 친구 약속 · 단축",[["🧮 수학",["07/12 — p.64 선형변환 ~ p.71 표현행렬 유형14 예제12"]],["🔁 이전 미적분 복습",["이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 30~60분"]],["📌 일정",["16:00부터 친구 약속","학원 불참","4~6h 목표"]]]],["2026-08-20","🏫 학원 · 8~10h",[["🧮 수학",["07/18 — p.71 표현행렬 예제13 ~ p.79 여러 가지 변환행렬 예제27","07/19 — p.77 여러 가지 변환행렬(선형변환) 개념, 예제29~30 + p.80~81 고유치와 고유벡터 개념, 유형17 예제1~11 (1차 수강)","각 진도: 강의 듣기 + 문제풀이/정리"]],["🔁 이전 미적분 복습",["5/31 이전 미적분 진도 1시간"]],["🇬🇧 영어",["영어 2시간"]],["📌 일정",["18:00~22:00 학원"]]]],["2026-08-21","🏫 학원 · 8~10h",[["🧮 수학",["07/19 — 남은 범위 마무리: p.80~81 고유치와 고유벡터 개념, 유형17 예제1~11","07/25 — p.81~ 고유치와 고유벡터 개념 ~ p.91 예제28 (1차 수강)","07/25 — p.90 행렬의 대각화(닮은행렬 개념) (가능하면 시작)","각 진도: 강의 듣기 + 문제풀이/정리"]],["🔁 이전 미적분 복습",["5/31 이전 미적분 진도 1시간"]],["🇬🇧 영어",["영어 2시간"]],["📌 일정",["18:00~22:00 학원"]]]],["2026-08-22","⭐ 정상 12h",[["🧮 수학",["07/25 — 남은 범위 마무리: p.90 행렬의 대각화(닮은행렬 개념) + p.91 예제28까지","07/26 — p.90 행렬의 대각화 개념 ~ p.97 행렬의 거듭제곱 예제45","각 진도: 강의 듣기 + 문제풀이/정리"]],["🔁 이전 미적분 복습",["5/31 이전 미적분 진도 1시간"]],["🇬🇧 영어",["영어 3~4시간"]]]],["2026-08-23","⭐ 정상 12h",[["🧮 수학",["08/01 — p.97 행렬의 거듭제곱 예제46 + 이차형식 예제47~52","08/02 — 선형대수 p.99 이차형식 개념, p.102 이차형식 예제53~58","08/02 — 다변수미적분: 다변수함수의 개념과 그래프 p.1~8 예제6","각 진도: 강의 듣기 + 문제풀이/정리"]],["🔁 이전 미적분 복습",["5/31 이전 미적분 진도 1시간"]],["🇬🇧 영어",["영어 3~4시간"]]]],["2026-08-24","❌ OFF",[["📌 상태",["통째로 어려운 날 — 공부 계획에서 제외","만회 공부도 하지 않음"]]]],["2026-08-25","⭐ 정상 12h",[["🧮 수학",["08/08 — 이변수함수의 극한과 연속 p.8 예제7 ~ 기울기벡터와 방향도함수 p.16 예제21","08/09 — 기울기벡터와 방향도함수 p.16 예제22 ~ p.20 예제35","08/09 — 전미분과 근사함수 개념 p.21 ~ p.23 예제38","기존 05/31~08/09 진도 전체 미완료분 최종 점검","각 진도: 강의 듣기 + 문제풀이/정리"]],["🔁 이전 미적분 복습",["5/31 이전 미적분 진도 1시간"]],["🇬🇧 영어",["영어 3~4시간"]],["🎯 목표",["오늘까지 기존 밀린 진도를 최대한 100% 완료"]]]],["2026-08-26","📚 자격증 특강",[["📚 자격증",["특강 공부가 최우선"]],["🧮 수학",["밀린 수학 진도는 계획하지 않음"]],["🇬🇧 영어",["가능하면 영단어만 20~30분"]],["📌 일정",["자격증 특강 · 수학 진도 0"]]]],["2026-08-27","📚 자격증 특강",[["📚 자격증",["특강 공부가 최우선"]],["🧮 수학",["밀린 수학 진도는 계획하지 않음"]],["🇬🇧 영어",["가능하면 영단어만 20~30분"]],["📌 일정",["자격증 특강 · 수학 진도 0"]]]],["2026-08-28","📚 자격증 특강",[["📚 자격증",["특강 공부가 최우선"]],["🧮 수학",["밀린 수학 진도는 계획하지 않음"]],["🇬🇧 영어",["가능하면 영단어만 20~30분"]],["📌 일정",["자격증 특강 · 수학 진도 0"]]]],["2026-08-29","🔥 기존 진도 최종 마무리 · 수업 없음",[["🧮 수학",["05/31~08/09 기존 밀린 진도 중 남은 항목 전부 마무리","완료 체크 후 문제풀이/정리 누락분 보완","목표: 기존 밀린 진도 100% 완료"]],["🔁 이전 미적분 복습",["이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 3~4시간"]],["📌 일정",["수학 수업 없음"]]]],["2026-08-30","🎯 현진도 DAY 1~2 · 수업 없음",[["🧮 현진도",["현진도 ① — 8/9까지 기존 밀린 진도 완료 후 첫 번째 현진도","현진도 ② — 두 번째 현진도","실제 반장님 진도 게시 후 페이지/내용으로 교체"]],["🔁 이전 미적분 복습",["이전 미적분 복습 1시간"]],["🇬🇧 영어",["영어 3~4시간"]],["📌 일정",["수학 수업 없음"]]]],["2026-08-31","🎯 현진도 DAY 3~4 · 9월 준비",[["🧮 현진도",["현진도 ③ — 세 번째 현진도","현진도 ④ — 네 번째 현진도","실제 반장님 진도 게시 후 페이지/내용으로 교체"]],["🔁 이전 미적분 복습",["이전 미적분 복습"]],["🇬🇧 영어",["영어"]],["📋 9월 준비",["기존 밀린 진도 100% 확인","현진도 4일치 100% 확인","9월 첫 수업부터 따라갈 준비 완료"]]]]];
 
 let data=JSON.parse(localStorage.getItem("studyPlannerV3")||"null");
 if(!data)data=seed.map((d,i)=>({date:d[0],tag:d[1],groups:d[2].map((g,gi)=>({id:`g${i}-${gi}`,title:g[0],tasks:g[1].map((t,ti)=>({id:`t${i}-${gi}-${ti}`,text:t,done:false}))}))}));
 
 let monthlyGoals=JSON.parse(localStorage.getItem("monthlyGoalsV3")||"null");
-if(!monthlyGoals) monthlyGoals=[
-  {id:"mg1",text:"05/31부터 시작한 선형대수 밀린 진도 전부 따라잡기",done:false},
-  {id:"mg2",text:"8월에 추가되는 현진도 4일치까지 놓치지 않기",done:false},
-  {id:"mg3",text:"5/31 이전에 배운 미적분 진도 복습 — 하루 최소 1시간",done:false},
-  {id:"mg4",text:"영어 공부를 7:3 공부 비율에 맞춰 꾸준히 진행하기",done:false},
-  {id:"mg5",text:"9월 개강 전 수학·영어 공부 루틴 만들기",done:false}
-];
+if(!monthlyGoals) monthlyGoals=[{"id":"mg1","text":"05/31~08/09 기존 밀린 진도 19일치 전부 수강 + 문제풀이/정리","done":false},{"id":"mg2","text":"8/30~31 현진도 4일치까지 모두 수강해 9월 개강 준비","done":false},{"id":"mg3","text":"5/31 이전 미적분 진도 복습 — 가능한 날 하루 1시간","done":false},{"id":"mg4","text":"영어를 전체 공부시간의 약 30%로 꾸준히 진행","done":false},{"id":"mg5","text":"정상일 12h / 학원일 8h+ / 일정일 최소선 — 무리해서 다음 날 2배 보충하지 않기","done":false},{"id":"mg6","text":"8월 말에 수학 밀린 진도와 현진도 모두 체크하고 9월부터 현진도 따라가기","done":false}];
 function saveMonthlyGoals(){localStorage.setItem("monthlyGoalsV3",JSON.stringify(monthlyGoals))}
+
+const masterCatchup=[["05/31","p.1 행렬의 개념과 계산 ~ p.6 여러 가지 행렬 / p.9 행렬식과 역행렬"],["06/07","p.10 행렬식과 역행렬 개념 ~ p.18 예제23번"],["06/13","p.12 행렬식과 역행렬 개념(수반행렬) ~ p.25 행렬식과 연립방정식 예제35번"],["06/20","p.22 행렬과 연립방정식 ~ 벡터의 개념과 연산 p.28"],["06/21","p.28 벡터의 개념과 연산 ~ p.35 벡터의 내적과 외적 예제20번"],["06/28","p.34 벡터의 내적과 외적(외적의 성질) ~ 직선과 평면의 방정식 p.41 예제33번"],["06/29","p.38 직선과 평면의 방정식 ~ p.46 예제50번"],["07/04","직선과 평면의 방정식 예제48번, 51번 / p.47 벡터공간 ~ p.52 기저와 차원(기저의 개념)"],["07/05","p.52 기저와 차원(기저의 종류) ~ p.60 행공간·열공간 예제17번"],["07/11","p.57 해공간 개념 ~ p.63 유형12 예제29"],["07/12","p.64 선형변환 ~ p.71 표현행렬 유형14 예제12"],["07/18","p.71 표현행렬 예제13 ~ p.79 여러 가지 변환행렬 예제27"],["07/19","p.77 여러 가지 변환행렬(선형변환) 개념, 예제29~30 / p.80~81 고유치와 고유벡터 개념, 유형17 예제1~11"],["07/25","p.81~ 고유치와 고유벡터 개념 / p.85 예제12 ~ p.91 예제28 / p.90 행렬의 대각화(닮은행렬 개념)"],["07/26","p.90 행렬의 대각화 개념 ~ p.97 행렬의 거듭제곱 예제45"],["08/01","p.97 행렬의 거듭제곱 예제46 / 이차형식 예제47~52"],["08/02","선형대수 p.99 이차형식 개념, p.102 이차형식 예제53~58 / 다변수미적분 다변수함수의 개념과 그래프 p.1~8 예제6"],["08/08","이변수함수의 극한과 연속 p.8 예제7 ~ 기울기벡터와 방향도함수 p.16 예제21"],["08/09","기울기벡터와 방향도함수 p.16 예제22 ~ p.20 예제35 / 전미분과 근사함수 개념 p.21 ~ p.23 예제38"],["현진도 ①","8/9까지 기존 밀린 진도 완료 후 첫 번째 현진도"],["현진도 ②","두 번째 현진도"],["현진도 ③","세 번째 현진도"],["현진도 ④","네 번째 현진도"]];
+let masterDone=JSON.parse(localStorage.getItem("masterCatchupV6")||"{}");
+function saveMaster(){localStorage.setItem("masterCatchupV6",JSON.stringify(masterDone))}
+function renderMasterCatchup(){
+ const root=document.getElementById("masterCatchup");if(!root)return;
+ root.innerHTML=masterCatchup.map((x,i)=>`<label class="task ${masterDone[i]?"done":""}">
+ <input type="checkbox" ${masterDone[i]?"checked":""} onchange="toggleMaster(${i},this.checked)">
+ <span class="tasktext"><b>${esc(x[0])}</b> — ${esc(x[1])}</span></label>`).join("");
+}
+function toggleMaster(i,v){masterDone[i]=v;saveMaster();renderMasterCatchup()}
+
 function renderMonthly(){
   const root=document.getElementById("monthlyGoals"); if(!root)return;
   const done=monthlyGoals.filter(g=>g.done).length, p=pct(done,monthlyGoals.length);
@@ -293,10 +290,24 @@ function getDay(date){return data.find(d=>d.date===date)}
 function getRecord(date){return JSON.parse(localStorage.getItem("record-"+date)||"{}")}
 function setRecord(date,obj){localStorage.setItem("record-"+date,JSON.stringify(obj))}
 function tasksOf(d){return d?d.groups.flatMap(g=>g.tasks):[]}
+function phaseState(t){
+  if(!t.phases)t.phases={lecture:false,practice:false,review:false};
+  return t.phases;
+}
+function taskDone(t){return t.done || (t.phases && t.phases.lecture && t.phases.practice && t.phases.review)}
+function taskPhaseCount(t){let p=phaseState(t);return [p.lecture,p.practice,p.review].filter(Boolean).length}
 function todayISO(){let d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
 function fmt(date){let d=new Date(date+"T00:00:00");return `${d.getMonth()+1}월 ${d.getDate()}일 (${["일","월","화","수","목","금","토"][d.getDay()]})`}
 function pct(done,total){return total?Math.round(done/total*100):0}
 
+function targetHoursFor(date){
+ const d=getDay(date); if(!d)return 0;
+ if(d.tag.includes("OFF"))return 0;
+ if(d.tag.includes("특강"))return 2;
+ if(d.tag.includes("가족")||d.tag.includes("친구")||d.tag.includes("약속"))return 4;
+ if(d.tag.includes("학원"))return 8;
+ return 12;
+}
 function renderToday(){
  let iso=todayISO(),d=getDay(iso);recordDate=iso;
  document.getElementById("todayTitle").textContent=fmt(iso);
@@ -304,9 +315,12 @@ function renderToday(){
  const root=document.getElementById("todayTasks");root.innerHTML="";
  if(!d){root.innerHTML='<div class="card hint">오늘 날짜가 8월 계획 밖이야. 기록 탭에서 날짜를 골라 과거 기록을 확인할 수 있어.</div>';return}
  root.innerHTML=renderDay(d,true);
- let a=tasksOf(d),done=a.filter(t=>t.done).length,p=pct(done,a.length),r=getRecord(iso);
+ let a=tasksOf(d),done=a.filter(t=>taskDone(t)).length,p=pct(done,a.length),r=getRecord(iso);
  document.getElementById("todayDone").textContent=done;document.getElementById("todayTotal").textContent=a.length;
  document.getElementById("todayPct").textContent=p+"%";document.getElementById("todayBar").style.width=p+"%";
+ const target=targetHoursFor(iso),actual=Number(r.total||0),ap=target?pct(Math.min(actual,target),target):0;
+ document.getElementById("todayTargetText").textContent=target+"h";
+ document.getElementById("todayActualText").textContent=actual+"h · "+ap+"%";
  document.getElementById("thTotal").value=r.total||"";document.getElementById("thMath").value=r.math||"";document.getElementById("thEng").value=r.eng||"";document.getElementById("todayNote").value=r.note||"";
 }
 
@@ -315,16 +329,30 @@ function renderDay(d,editTasks=false){
  d.groups.forEach(g=>{
   let done=g.tasks.filter(t=>t.done).length;
   html+=`<div class="group"><div class="gtitle"><span>${esc(g.title)}</span><span class="gcount">${done}/${g.tasks.length}</span></div>`;
-  g.tasks.forEach(t=>html+=`<label class="task ${t.done?"done":""}"><input type="checkbox" ${t.done?"checked":""} onchange="toggle('${d.date}','${g.id}','${t.id}',this.checked)"><span class="tasktext">${esc(t.text)}</span><button class="taskedit" onclick="editTask('${d.date}','${g.id}','${t.id}')">✎</button></label>`);
+  g.tasks.forEach(t=>{
+  let p=phaseState(t), done=taskDone(t);
+  html+=`<div class="taskblock ${done?"done":""}">
+    <div class="task"><input type="checkbox" ${done?"checked":""} onchange="toggle('${d.date}','${g.id}','${t.id}',this.checked)">
+      <span class="tasktext">${esc(t.text)}</span>
+      <span class="phasecount">${taskPhaseCount(t)}/3</span>
+      <button class="taskedit" onclick="editTask('${d.date}','${g.id}','${t.id}')">✎</button>
+    </div>
+    <div class="phases">
+      <label><input type="checkbox" ${p.lecture?"checked":""} onchange="togglePhase('${d.date}','${g.id}','${t.id}','lecture',this.checked)"> 강의</label>
+      <label><input type="checkbox" ${p.practice?"checked":""} onchange="togglePhase('${d.date}','${g.id}','${t.id}','practice',this.checked)"> 문제풀이·정리</label>
+      <label><input type="checkbox" ${p.review?"checked":""} onchange="togglePhase('${d.date}','${g.id}','${t.id}','review',this.checked)"> 복습 완료</label>
+    </div>
+  </div>`;
+});
   html+=`<button class="addline" onclick="addTask('${d.date}','${g.id}')">＋ 항목 추가</button></div>`;
  });
  return html+"</div></div>";
 }
 function renderPlan(){document.getElementById("planList").innerHTML=data.map(d=>renderDay(d)).join("")}
 function renderProgress(){
- let all=data.flatMap(tasksOf),done=all.filter(t=>t.done).length,p=pct(done,all.length);
+ let all=data.flatMap(tasksOf),done=all.filter(t=>taskDone(t)).length,p=pct(done,all.length);
  document.getElementById("allDone").textContent=done;document.getElementById("allTotal").textContent=all.length;document.getElementById("allPct").textContent=p+"%";document.getElementById("allBar").style.width=p+"%";
- const calc=(filter)=>{let a=data.flatMap(d=>d.groups.filter(g=>filter(g.title)).flatMap(g=>g.tasks));return pct(a.filter(t=>t.done).length,a.length)};
+ const calc=(filter)=>{let a=data.flatMap(d=>d.groups.filter(g=>filter(g.title)).flatMap(g=>g.tasks));return pct(a.filter(t=>taskDone(t)).length,a.length)};
  let m=calc(t=>t.includes("수학")),e=calc(t=>t.includes("영어")),r=calc(t=>t.includes("복습"));
  [["mathPct","mathBar",m],["engPct","engBar",e],["reviewPct","reviewBar",r]].forEach(x=>{document.getElementById(x[0]).textContent=x[2]+"%";document.getElementById(x[1]).style.width=x[2]+"%"});
  let totalHours=0;data.forEach(d=>totalHours+=Number(getRecord(d.date).total||0));document.getElementById("studyHours").textContent=totalHours+"h";
@@ -333,7 +361,13 @@ function renderProgress(){
 function renderRecord(){
  document.getElementById("recordDate").value=recordDate;
  let d=getDay(recordDate),r=getRecord(recordDate);
- document.getElementById("recordContent").innerHTML=`<div class="card"><div class="bigdate">${fmt(recordDate)}</div><div class="hint">${d?esc(d.tag):"계획에 없는 날짜 — 개인 기록만 남길 수 있어."}</div><div class="section-title">⏱ 공부시간</div><div class="hours"><label>총<input id="rhTotal" type="number" min="0" step=".5" value="${r.total||""}"></label><label>수학<input id="rhMath" type="number" min="0" step=".5" value="${r.math||""}"></label><label>영어<input id="rhEng" type="number" min="0" step=".5" value="${r.eng||""}"></label></div><div class="section-title">📝 피드백</div><textarea id="rhNote" placeholder="집중도, 어려웠던 부분, 다음에 할 것...">${esc(r.note||"")}</textarea><button class="btn" style="margin-top:8px" onclick="saveRecordPage()">기록 저장</button></div>
+ document.getElementById("recordContent").innerHTML=`<div class="card"><div class="bigdate">${fmt(recordDate)}</div><div class="hint">${d?esc(d.tag):"계획에 없는 날짜 — 개인 기록만 남길 수 있어."}</div><div class="section-title">⏱ 공부시간</div>
+ <div class="card" style="margin:8px 0;background:#fafafa">
+   <div class="metrichead"><span>목표 시간</span><span id="recordTargetText">${targetHoursFor(recordDate)}h</span></div>
+   <div class="metricbar"><i id="recordTimeBar" style="width:${getRecord(recordDate).total&&targetHoursFor(recordDate)?Math.min(Number(getRecord(recordDate).total),targetHoursFor(recordDate))/targetHoursFor(recordDate)*100:0}%"></i></div>
+   <div class="hint" style="margin-top:6px">실제 공부시간 ÷ 목표 공부시간으로 달성률을 계산해.</div>
+ </div>
+ <div class="hours"><label>총<input id="rhTotal" type="number" min="0" step=".5" value="${r.total||""}"></label><label>수학<input id="rhMath" type="number" min="0" step=".5" value="${r.math||""}"></label><label>영어<input id="rhEng" type="number" min="0" step=".5" value="${r.eng||""}"></label></div><div class="section-title">📝 피드백</div><textarea id="rhNote" placeholder="집중도, 어려웠던 부분, 다음에 할 것...">${esc(r.note||"")}</textarea><button class="btn" style="margin-top:8px" onclick="saveRecordPage()">기록 저장</button></div>
  <div class="section-title">➕ 이 날짜의 추가 할 일</div><div class="card"><div class="row"><input id="extraTodo" class="grow" type="text" placeholder="예: 영어 단어 1회독"><button class="btn" onclick="addExtraTodo('${recordDate}')">추가</button></div><div id="extraList" style="margin-top:7px"></div></div>`;
  renderExtra(recordDate);renderCalendar();
 }
@@ -346,7 +380,18 @@ function renderCalendar(){
 }
 function saveTodayRecord(){let iso=todayISO();setRecord(iso,{total:document.getElementById("thTotal").value,math:document.getElementById("thMath").value,eng:document.getElementById("thEng").value,note:document.getElementById("todayNote").value});renderToday();renderProgress()}
 function saveRecordPage(){let d=recordDate;setRecord(d,{total:document.getElementById("rhTotal").value,math:document.getElementById("rhMath").value,eng:document.getElementById("rhEng").value,note:document.getElementById("rhNote").value});renderRecord();renderProgress()}
-function toggle(date,gi,ti,v){let d=getDay(date),g=d.groups.find(x=>x.id===gi),t=g.tasks.find(x=>x.id===ti);t.done=v;save();renderAll()}
+function toggle(date,gi,ti,v){
+ let d=getDay(date),g=d.groups.find(x=>x.id===gi),t=g.tasks.find(x=>x.id===ti);
+ t.done=v;
+ if(v){t.phases={lecture:true,practice:true,review:true};}
+ else {t.phases={lecture:false,practice:false,review:false};}
+ save();renderAll();
+}
+function togglePhase(date,gi,ti,phase,v){
+ let d=getDay(date),g=d.groups.find(x=>x.id===gi),t=g.tasks.find(x=>x.id===ti),p=phaseState(t);
+ p[phase]=v;t.done=!!(p.lecture&&p.practice&&p.review);
+ save();renderAll();
+}
 function addTask(date,gi){let x=prompt("추가할 공부 항목을 입력하세요");if(!x)return;getDay(date).groups.find(g=>g.id===gi).tasks.push({id:"t"+Date.now(),text:x.trim(),done:false});save();renderAll()}
 function editTask(date,gi,ti){let t=getDay(date).groups.find(g=>g.id===gi).tasks.find(x=>x.id===ti),x=prompt("항목 수정",t.text);if(x===null)return;if(!x.trim()){if(confirm("이 항목을 삭제할까요?")){getDay(date).groups.find(g=>g.id===gi).tasks=getDay(date).groups.find(g=>g.id===gi).tasks.filter(q=>q.id!==ti)}}else t.text=x.trim();save();renderAll()}
 function editDay(date){
@@ -377,7 +422,7 @@ function importData(){
 }
 function resetAll(){if(!confirm("플래너의 체크/기록을 모두 초기화할까요?"))return;localStorage.clear();location.reload()}
 
-document.getElementById("headerSub").textContent="수학 7 : 영어 3 ";
+document.getElementById("headerSub").textContent="8/13 리셋 v7 · 수학 7 : 영어 3 · 반장님 진도 기준";
 renderAll();
 </script>
 </body>
